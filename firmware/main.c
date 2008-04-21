@@ -5,6 +5,8 @@
 
 #define BAUDRATE 9600
 #define UBRRVAL ((F_CPU/(BAUDRATE*16UL))-1)
+#define SPEAKER PB0
+#define ARMLED PB1
 
 volatile uint8_t rx_int = 0;
 volatile char rxbuff;
@@ -25,17 +27,23 @@ SIGNAL(SIG_UART_RECV)
 }
 
 void ioinit(){
+	//Set Speaker and Armed LED pins HIGH
+	PORTB |= _BV(SPEAKER);
+	PORTB |= _BV(ARMLED);
+
 	DDRB = 0xff;
 	DDRC = 0xff;
 	DDRD = 0xff;
 
-	PORTB = 0x03;	//PB0 and PB1 set HIGH
+	PORTB = 0x00;
 	PORTC = 0x00;
 	PORTD = 0x00;
 
+	
+
 	//Set baud rate
-	UBRRL = UBRRVAL; //low byte
-	UBRRH = (UBRRVAL>>8); //high byte
+	UBRRL = UBRRVAL;
+	UBRRH = (UBRRVAL>>8);
 
 	//Set data frame format: asynchronous mode,no parity, 1 stop bit, 8 bit size
 	UCSRC=(1<<URSEL)|(0<<UMSEL)|(0<<UPM1)|(0<<UPM0)|(0<<USBS)|(0<<UCSZ2)|(1<<UCSZ1)|(1<<UCSZ0);
@@ -49,18 +57,11 @@ void ioinit(){
 
 void putchr( uint8_t data )
 {
-   /* Wait for empty transmit buffer */
    while ( !( UCSRA & (1<<UDRE)) ) {};
-   /* Put data into buffer, sends the data */
    UDR = data;
-   
 }
 
-/*
- * Send a C (NUL-terminated) string down the UART Tx.
- */
-static void
-printstr(const char *s)
+static void printstr(const char *s)
 {
 	while (*s){
 		if (*s == '\n')
@@ -69,12 +70,7 @@ printstr(const char *s)
 	}
 }
 
-/*
- * Same as above, but the string is located in program memory,
- * so "lpm" instructions are needed to fetch it.
- */
-static void
-printstr_p(const char *s)
+static void printstr_p(const char *s)
 {
 	char c;
 
