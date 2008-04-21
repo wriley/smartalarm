@@ -1,95 +1,67 @@
-#include <avr/eeprom.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
+#include "defines.h"
+
+#include <ctype.h>
+#include <stdint.h>
+#include <stdio.h>
+
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 
-#define BAUDRATE 9600
-#define UBRRVAL ((F_CPU/(BAUDRATE*16UL))-1)
-#define SPEAKER PB0
-#define ARMLED PB1
+#include <util/delay.h>
 
-volatile uint8_t rx_int = 0;
-volatile char rxbuff;
+#include "uart.h"
 
-const char greeting[] __attribute__((progmem)) =
-"\nsmartAlarm\n";
-
-SIGNAL(SIG_UART_RECV)
+static void ioinit(void)
 {
-  uint8_t c;
-
-  c = UDR;
-  if (bit_is_clear(UCSRA, FE))
-    {
-      rxbuff = c;
-      rx_int = 1;
-    }
+	uart_init();
 }
 
-void ioinit(){
-	//Set Speaker and Armed LED pins HIGH
-	PORTB |= _BV(SPEAKER);
-	PORTB |= _BV(ARMLED);
+FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
-	DDRB = 0xff;
-	DDRC = 0xff;
-	DDRD = 0xff;
-
-	PORTB = 0x00;
-	PORTC = 0x00;
-	PORTD = 0x00;
-
-	
-
-	//Set baud rate
-	UBRRL = UBRRVAL;
-	UBRRH = (UBRRVAL>>8);
-
-	//Set data frame format: asynchronous mode,no parity, 1 stop bit, 8 bit size
-	UCSRC=(1<<URSEL)|(0<<UMSEL)|(0<<UPM1)|(0<<UPM0)|(0<<USBS)|(0<<UCSZ2)|(1<<UCSZ1)|(1<<UCSZ0);
-
-	//Enable Transmitter and Receiver
-	UCSRB=(1<<RXEN)|(1<<TXEN);
-
-	//Enable interrupts
-	sei();
-}
-
-void putchr( uint8_t data )
+int main(void)
 {
-   while ( !( UCSRA & (1<<UDRE)) ) {};
-   UDR = data;
-}
+	char buf[20];
+	int i = 0;
 
-static void printstr(const char *s)
-{
-	while (*s){
-		if (*s == '\n')
-			putchr('\r');
-      	putchr(*s++);
-	}
-}
-
-static void printstr_p(const char *s)
-{
-	char c;
-
-	for (c = pgm_read_byte(s); c; ++s, c = pgm_read_byte(s)){
-    	if (c == '\n')
-			putchr('\r');
-      	putchr(c);
-    }
-}
-
-int main(){
 	ioinit();
-	printstr_p(greeting);
 
-	while(1){
-		if(rx_int == 1){
-			printstr("Received: ");
-			putchr(rxbuff);
-			printstr("\n");
+	stdout = stdin = &uart_str;
+
+	PORTB &= ~(_BV(ARMLED));
+	fprintf(stdout, "Alarm ready\n");
+
+	for (;;){
+		if (fgets(buf, sizeof buf - 1, stdin) == NULL)
+			break;
+
+		switch (tolower(buf[0])){
+			default:
+			printf("Unknown command: %s\n", buf);
+			break;
+
+			case 'a':
+				if (sscanf(buf, "%*c%d", &i) > 0){
+					switch (i){
+						case '0':
+							printf("Alarm Off\n");
+							PORTB |= _BV(SPEAKER);
+							break;
+						case '1':
+							printf("Alarm On\n");
+							PORTB &= ~(_BV(SPEAKER));
+							break;
+					}
+				} else {
+					printf("sscanf() failed\n");
+				}
+				break;
+			case 'm':
+				if (sscanf(buf, "%*c%d", &i) > 0){
+					printf("Mode set to %d\n", i);
+				} else {
+					printf("sscanf() failed\n");
+				}
+				break;
 		}
 	}
 
