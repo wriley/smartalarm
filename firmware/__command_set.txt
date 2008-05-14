@@ -1,0 +1,22 @@
+Commands are prefixed by ALM
+multiple commands per line are delimited by "&"
+
+A successful command string will return "OK", an error returns "ERROR #"
+Error numbers
+#	Text
+1	Invalid command
+2	Invalid command value
+3	Invalid command combination
+
+
+Command set
+Cmd	Values		Purpose
+E	0,1		Alarm enabled
+F	1-255		Frequency
+D	1-255		Duration
+P	1-255		Pause
+R	0-255		Repeat
+M	0-7		Mode preset #
+S	0-7		Save current settings to mode preset #
+Q	0-7		Show settings for mode preset #
+G	---		Show current settings
