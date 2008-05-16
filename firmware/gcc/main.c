@@ -14,9 +14,16 @@ u08 Run;
 // functions
 void goCmdline(void);
 void statusLED(u08);
+
 void exitFunction(void);
 void helpFunction(void);
 void testFunction(void);
+void freqFunction(void);
+void alarmonFunction(void);
+void alarmoffFunction(void);
+
+void alarmOn(void);
+void alarmOff(void);
 
 //----- Begin Code ------------------------------------------------------------
 int main(void)
@@ -37,6 +44,16 @@ int main(void)
 	// set statusLED pins to output
 	sbi(DDRB, 1);
 	sbi(DDRB, 2);
+
+	sbi(DDRB, 4);
+
+	// initialize pulse library
+	pulseInit();
+	pulseT1ASetFreq(1500);
+
+	timer1PWMInit(8);
+	timer1PWMBOn();
+	timer1PWMBSet(0);
 
 	statusLED(ORANGE);
 
@@ -59,8 +76,12 @@ void goCmdline(void)
 	cmdlineSetOutputFunc(uartSendByte);
 
 	// add commands to the command database
-	cmdlineAddCommand("exit",		exitFunction);
 	cmdlineAddCommand("help",		helpFunction);
+	cmdlineAddCommand("exit",		exitFunction);
+	cmdlineAddCommand("alarmon",	alarmonFunction);
+	cmdlineAddCommand("alarmoff",	alarmoffFunction);
+	cmdlineAddCommand("freq",		freqFunction);
+	cmdlineAddCommand("test",		testFunction);
 
 	// send a CR to cmdline input to stimulate a prompt
 	cmdlineInputFunc('\r');
@@ -89,22 +110,25 @@ void goCmdline(void)
 void statusLED(u08 color){
 	switch(color){
 		case RED:
-			sbi(PORTB, 2);
-			cbi(PORTB, 1);
+			timer1PWMBSet(0);
+			sbi(PORTB, 4);
 			break;
 		case GREEN:
-			cbi(PORTB, 2);
-			sbi(PORTB, 1);
+			timer1PWMBSet(255);
+			cbi(PORTB, 4);
+			break;
+		case ORANGE:
+			timer1PWMBSet(127);
+			sbi(PORTB, 4);
 			break;
 		default:
-			cbi(PORTB, 2);
-			cbi(PORTB, 1);
 			break;
 	}
 }
 
 void exitFunction(void)
 {
+	alarmOff();
 	// to exit, we set Run to FALSE
 	Run = FALSE;
 }
@@ -116,12 +140,18 @@ void helpFunction(void)
 	rprintf("Available commands are:\r\n");
 	rprintf("help      - displays available commands\r\n");
 	rprintf("exit      - shutdown smartAlarm (requires reset to resume)\r\n");
+	rprintf("alarmon   - activate Alarm\r\n");
+	rprintf("alarmoff  - de-activate Alarm\r\n");
+	rprintf("freq      - set frequency in Hertz for Alarm\r\n");
 	rprintf("test      - run test cycle for LEDs and Alarm\r\n");
 
 	rprintfCRLF();
 }
 
 void testFunction(void){
+	rprintf("Beginning test sequence\r\n");
+	rprintfCRLF();
+
 	rprintf("Setting statusLED to GREEN\r\n");
 	statusLED(GREEN);
 	timerPause(TESTPAUSE);
@@ -140,4 +170,28 @@ void testFunction(void){
 	rprintf("Test cycle complete\r\n");
 
 	rprintfCRLF();
+}
+
+void alarmonFunction(void){
+	alarmOn();
+	rprintf("Alarm ON\r\n");
+}
+
+void alarmoffFunction(void){
+	alarmOff();
+	rprintf("Alarm OFF\r\n");
+}
+
+void freqFunction(void){
+	u16 f = cmdlineGetArgInt(1);
+	pulseT1ASetFreq(f);
+	rprintf("Frequency set to %dHz\r\n", f);
+}
+
+void alarmOn(void){
+	pulseT1ARun(0);
+}
+
+void alarmOff(void){
+	pulseT1AStop();
 }
