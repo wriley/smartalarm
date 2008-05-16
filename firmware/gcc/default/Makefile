@@ -34,8 +34,11 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
+## Include Directories
+INCLUDES = -I"C:\Users\William\Projects\smartAlarm\firmware\gcc\avrlib" -I"C:\Users\William\Projects\smartAlarm\firmware\gcc\." 
+
 ## Objects that must be built in order to link
-OBJECTS = main.o uart.o 
+OBJECTS = main.o pulse.o rprintf.o timer.o uart.o buffer.o cmdline.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -47,7 +50,22 @@ all: $(TARGET) smartAlarm.hex smartAlarm.eep smartAlarm.lss size
 main.o: ../main.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-uart.o: ../uart.c
+pulse.o: ../avrlib/pulse.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+rprintf.o: ../avrlib/rprintf.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+timer.o: ../avrlib/timer.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+uart.o: ../avrlib/uart.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+buffer.o: ../avrlib/buffer.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+cmdline.o: ../avrlib/cmdline.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
