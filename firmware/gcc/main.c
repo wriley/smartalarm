@@ -11,28 +11,36 @@
 
 // global variables
 u08 Run;
+
 volatile u16 repeatOn = 2000;
 volatile u16 repeatOff = 1000;
 volatile u08 repeatCycle = ON;
 volatile u16 repeatCounter = 0;
-volatile u16 pulseOn = 0;
+
+volatile unsigned long pulseOn = 0;
 volatile u08 pulseStart = 0;
-volatile u16 pulseCounter = 0;
+volatile unsigned long pulseCounter = 0;
+
+volatile u16 pulse2On = 0;
+volatile u08 pulse2Start = 0;
+volatile u16 pulse2Counter = 0;
+
 volatile u08 mode = OFF;
-volatile u08 lastmode = OFF;
-volatile u16 UptimeMs = 0;
+volatile unsigned long UptimeMs = 0;
 
 // functions
 void goCmdline(void);
 void statusLED(u08);
 void systickHandler(void);
 
-void exitFunction(void);
 void helpFunction(void);
 void testFunction(void);
+void statusFunction(void);
 void alarmFunction(void);
+void cancelFunction(void);
 void repeatFunction(void);
 void pulseFunction(void);
+void pulse2Function(void);
 
 void alarmOn(void);
 void alarmOff(void);
@@ -84,11 +92,15 @@ void goCmdline(void)
 
 	// add commands to the command database
 	cmdlineAddCommand("help",		helpFunction);
-	cmdlineAddCommand("exit",		exitFunction);
-	cmdlineAddCommand("alarm",		alarmFunction);
 	cmdlineAddCommand("test",		testFunction);
+	cmdlineAddCommand("status",		statusFunction);
+
+	cmdlineAddCommand("alarm",		alarmFunction);
+	cmdlineAddCommand("cancel",		cancelFunction);
+	
 	cmdlineAddCommand("repeat",		repeatFunction);
 	cmdlineAddCommand("pulse",		pulseFunction);
+	cmdlineAddCommand("pulse2",		pulse2Function);
 
 	// send a CR to cmdline input to stimulate a prompt
 	cmdlineInputFunc('\r');
@@ -97,6 +109,8 @@ void goCmdline(void)
 	Run = TRUE;
 
 	statusLED(GREEN);
+
+	chirp();
 
 	// main loop
 	while(Run)
@@ -113,30 +127,35 @@ void goCmdline(void)
 	statusLED(RED);
 }
 
+void chirp(void){
+	alarmOn();
+	timerPause(CHIRP_DELAY);
+	alarmOff();
+	timerPause(CHIRP_DELAY);
+	alarmOn();
+	timerPause(CHIRP_DELAY);
+	alarmOff();
+}
+
 void statusLED(u08 color){
 	switch(color){
 		case RED:
 			cbi(PORTB, 1);
 			sbi(PORTB, 2);
 			break;
+		case YELLOW:
+			sbi(PORTB, 1);
+			sbi(PORTB, 2);
+			break;
 		case GREEN:
 			sbi(PORTB, 1);
 			cbi(PORTB, 2);
 			break;
-		case YELLOW:
+		default:
 			cbi(PORTB, 1);
 			cbi(PORTB, 2);
 			break;
-		default:
-			break;
 	}
-}
-
-void exitFunction(void)
-{
-	alarmOff();
-	// to exit, we set Run to FALSE
-	Run = FALSE;
 }
 
 void helpFunction(void)
@@ -145,21 +164,20 @@ void helpFunction(void)
 
 	rprintfProgStrM("Available commands are:\r\n");
 	rprintfProgStrM("help      - displays available commands\r\n");
-	rprintfProgStrM("exit      - shutdown smartAlarm (requires reset to resume)\r\n");
-	rprintfProgStrM("alarm     - set alarm on (1) or off (0)\r\n");
 	rprintfProgStrM("test      - run test cycle for LEDs and Alarm\r\n");
-	rprintfProgStrM("repeat    - sound alarm for <on>ms and <off>ms (optional duration <ms>)\r\n");
+	rprintfProgStrM("status    - set status LED (0)Red (1)Yellow (2)Green\r\n");
+
+	rprintfProgStrM("alarm     - sound continuous alarm\r\n");
+	rprintfProgStrM("cancel    - cancel any alarm mode\r\n");
+	rprintfProgStrM("repeat    - cycle alarm for <on>ms and <off>ms\r\n");
 	rprintfProgStrM("pulse     - sound alarm for <on>ms\r\n");
+	rprintfProgStrM("pulse2    - sound alternating alarm for <on>seconds\r\n");
 
 	rprintfCRLF();
 }
 
 void testFunction(void){
 	rprintfCRLF();
-
-	rprintf("Setting statusLED to GREEN\r\n");
-	statusLED(GREEN);
-	timerPause(TESTPAUSE);
 
 	rprintf("Setting statusLED to RED\r\n");
 	statusLED(RED);
@@ -169,7 +187,10 @@ void testFunction(void){
 	statusLED(YELLOW);
 	timerPause(TESTPAUSE);
 
+	rprintf("Setting statusLED to GREEN\r\n");
 	statusLED(GREEN);
+	timerPause(TESTPAUSE);
+
 	rprintf("Turning on alarm\r\n");
 	alarmOn();
 	timerPause(TESTPAUSE);
@@ -181,18 +202,18 @@ void testFunction(void){
 	rprintfCRLF();
 }
 
+void statusFunction(void){
+	statusLED(cmdlineGetArgInt(1));
+}
+
 void alarmFunction(void){
-	u08 s = cmdlineGetArgInt(1);
-	switch(s){
-		case 0:
-			alarmOff();
-			rprintf("OK - mode = %d\r\n", mode);
-			break;
-		case 1:
-			alarmOn();
-			rprintf("OK - mode = %d\r\n", mode);
-			break;
-	}
+	alarmOn();
+	rprintfProgStrM("OK\r\n");
+}
+
+void cancelFunction(void){
+	alarmOff();
+	rprintfProgStrM("OK\r\n");
 }
 
 void alarmOn(void){
@@ -206,17 +227,23 @@ void alarmOff(void){
 void repeatFunction(void){
 	repeatOn = cmdlineGetArgInt(1);
 	repeatOff = cmdlineGetArgInt(2);
-	repeatDuration = cmdlineGetArgInt(3);
 	repeatCycle = START;
 	mode = REPEAT;
-	rprintf("OK - mode = %d\r\n", mode);
+	rprintfProgStrM("OK\r\n");
 }
 
 void pulseFunction(void){
 	pulseOn = cmdlineGetArgInt(1);
 	pulseStart = 1;
 	mode = PULSE;
-	rprintf("OK - mode = %d\r\n", mode);
+	rprintfProgStrM("OK\r\n");
+}
+
+void pulse2Function(void){
+	pulse2On = cmdlineGetArgInt(1);
+	pulse2Start = 1;
+	mode = PULSE2;
+	rprintfProgStrM("OK\r\n");
 }
 
 void systickHandler(void){
@@ -227,25 +254,16 @@ void systickHandler(void){
 
 	switch(mode){
 		case OFF:
-			if(lastmode != mode){
-				cbi(PORTB, 0);
-				sbi(PORTC, 1);
-				sbi(PORTC, 2);
-			}
+			cbi(PORTB, 0);
 			break;
 		case ON:
-			if(lastmode != mode){
-				sbi(PORTB, 0);
-				cbi(PORTC, 1);
-			}
+			sbi(PORTB, 0);
 			break;
 		case REPEAT:
 			if(repeatCycle == START){
 				repeatCounter = 0;
 				repeatCycle = ON;
 				sbi(PORTB, 0);
-				sbi(PORTC, 1);
-				cbi(PORTC, 2);
 			} else {
 				repeatCounter += 10;
 			}
@@ -281,13 +299,23 @@ void systickHandler(void){
 			}
 
 			break;
-		case SONG:
+		case PULSE2:
+			if(pulse2Start == 1){
+				sbi(PORTB, 0);
+				pulse2Start = 0;
+				pulse2Counter = 0;
+			} else {
+				if(pulse2Counter > pulse2On){
+					cbi(PORTB, 0);
+				} else {
+					if((UptimeMs % 1000) == 0){
+						pulse2Counter++;
+						PORTB ^= (1<<0);
+					}
+				}
+			}
 			break;
 		default:
-			rprintf("Uknown mode!: %d\r\n", mode);
 			break;
 	}
-	if(lastmode != mode){
-		lastmode = mode;
-	}					
 }

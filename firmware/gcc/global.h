@@ -28,13 +28,16 @@
 #define ON 1
 #define REPEAT 2
 #define PULSE 3
-#define SONG 4
+#define PULSE2 4
 
 // for repeat mode
 #define START 2
 
 // ms to pause between tests in test cycle
 #define TESTPAUSE 3000
+
+// ms to pause when chirping
+#define CHIRP_DELAY 20
 
 // timer defines
 #define TIMER_PRESCALE		1024
