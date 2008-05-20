@@ -35,10 +35,10 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Include Directories
-INCLUDES = -I"C:\Users\William\Projects\smartAlarm\firmware\gcc\avrlib" -I"C:\Users\William\Projects\smartAlarm\firmware\gcc\." 
+INCLUDES = -I"C:\Documents and Settings\Administrator\My Documents\Projects\smartAlarm\firmware\gcc\avrlib" -I"C:\Documents and Settings\Administrator\My Documents\Projects\smartAlarm\firmware\gcc\." 
 
 ## Objects that must be built in order to link
-OBJECTS = main.o pulse.o rprintf.o timer.o uart.o buffer.o cmdline.o 
+OBJECTS = main.o rprintf.o timer.o uart.o buffer.o cmdline.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -48,9 +48,6 @@ all: $(TARGET) smartAlarm.hex smartAlarm.eep smartAlarm.lss size
 
 ## Compile
 main.o: ../main.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
-
-pulse.o: ../avrlib/pulse.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 rprintf.o: ../avrlib/rprintf.c
