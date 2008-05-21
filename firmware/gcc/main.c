@@ -12,18 +12,18 @@
 // global variables
 u08 Run;
 
-volatile u16 repeatOn = 2000;
-volatile u16 repeatOff = 1000;
+volatile long repeatOn = 2000;
+volatile long repeatOff = 1000;
 volatile u08 repeatCycle = ON;
-volatile u16 repeatCounter = 0;
+volatile long repeatCounter = 0;
 
-volatile unsigned long pulseOn = 0;
+volatile long pulseOn = 0;
 volatile u08 pulseStart = 0;
-volatile unsigned long pulseCounter = 0;
+volatile long pulseCounter = 0;
 
-volatile u16 pulse2On = 0;
+volatile long pulse2On = 0;
 volatile u08 pulse2Start = 0;
-volatile u16 pulse2Counter = 0;
+volatile long pulse2Counter = 0;
 
 volatile u08 mode = OFF;
 volatile unsigned long UptimeMs = 0;
@@ -83,7 +83,7 @@ void goCmdline(void)
 	u08 c;
 
 	rprintfProgStrM("\r\nsmartAlarm ready\r\n");
-	
+
 	// initialize cmdline system
 	cmdlineInit();
 
@@ -109,7 +109,6 @@ void goCmdline(void)
 	Run = TRUE;
 
 	statusLED(GREEN);
-
 	chirp();
 
 	// main loop
@@ -123,6 +122,7 @@ void goCmdline(void)
 		cmdlineMainLoop();
 	}
 
+	// we shouldn't get here normally
 	rprintfProgStrM("\r\nsmartAlarm exiting!!!\r\n");
 	statusLED(RED);
 }
@@ -164,14 +164,14 @@ void helpFunction(void)
 
 	rprintfProgStrM("Available commands are:\r\n");
 	rprintfProgStrM("help      - displays available commands\r\n");
-	rprintfProgStrM("test      - run test cycle for LEDs and Alarm\r\n");
-	rprintfProgStrM("status    - set status LED (0)Red (1)Yellow (2)Green\r\n");
+	rprintfProgStrM("test      - run test cycle for LED and Alarm\r\n");
+	rprintfProgStrM("status    - set status LED (0)Off (1)Red (2)Yellow (3)Green\r\n");
 
 	rprintfProgStrM("alarm     - sound continuous alarm\r\n");
 	rprintfProgStrM("cancel    - cancel any alarm mode\r\n");
 	rprintfProgStrM("repeat    - cycle alarm for <on>ms and <off>ms\r\n");
 	rprintfProgStrM("pulse     - sound alarm for <on>ms\r\n");
-	rprintfProgStrM("pulse2    - sound alternating alarm for <on>seconds\r\n");
+	rprintfProgStrM("pulse2    - alternate alarm every second for <on>seconds\r\n");
 
 	rprintfCRLF();
 }
@@ -197,13 +197,19 @@ void testFunction(void){
 	rprintf("Turning off alarm\r\n");
 	alarmOff();
 	timerPause(1000);
-	rprintf("Test cycle complete\r\n");
+	rprintf("OK\r\n");
 
 	rprintfCRLF();
 }
 
 void statusFunction(void){
-	statusLED(cmdlineGetArgInt(1));
+	u08 status = cmdlineGetArgInt(1);
+	if((status >= 0) && (status < 4)){
+		statusLED(status);
+		rprintfProgStrM("OK\r\n");
+	} else {
+		rprintfProgStrM("ERROR - Value out of range\r\n");
+	}
 }
 
 void alarmFunction(void){
@@ -227,23 +233,35 @@ void alarmOff(void){
 void repeatFunction(void){
 	repeatOn = cmdlineGetArgInt(1);
 	repeatOff = cmdlineGetArgInt(2);
-	repeatCycle = START;
-	mode = REPEAT;
-	rprintfProgStrM("OK\r\n");
+	if((repeatOn > 0) && (repeatOff > 0)){
+		repeatCycle = START;
+		mode = REPEAT;
+		rprintfProgStrM("OK\r\n");
+	} else {
+		rprintfProgStrM("ERROR - Value out of range\r\n");
+	}
 }
 
 void pulseFunction(void){
 	pulseOn = cmdlineGetArgInt(1);
-	pulseStart = 1;
-	mode = PULSE;
-	rprintfProgStrM("OK\r\n");
+	if(pulseOn > 0){
+		pulseStart = 1;
+		mode = PULSE;
+		rprintfProgStrM("OK\r\n");
+	} else {
+		rprintfProgStrM("ERROR - Value out of range\r\n");
+	}
 }
 
 void pulse2Function(void){
 	pulse2On = cmdlineGetArgInt(1);
-	pulse2Start = 1;
-	mode = PULSE2;
-	rprintfProgStrM("OK\r\n");
+	if(pulse2On > 0){
+		pulse2Start = 1;
+		mode = PULSE2;
+		rprintfProgStrM("OK\r\n");
+	} else {
+		rprintfProgStrM("ERROR - Value out of range\r\n");
+	}
 }
 
 void systickHandler(void){

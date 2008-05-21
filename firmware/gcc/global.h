@@ -19,9 +19,9 @@
 #define CYCLES_PER_US ((F_CPU+500000)/1000000) 	// cpu cycles per microsecond
 
 // Status LED colors
-#define RED 0
-#define YELLOW 1
-#define GREEN 2
+#define RED 1
+#define YELLOW 2
+#define GREEN 3
 
 // Alarm modes
 #define OFF 0
