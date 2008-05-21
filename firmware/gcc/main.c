@@ -82,7 +82,7 @@ void goCmdline(void)
 {
 	u08 c;
 
-	rprintfProgStrM("\r\nsmartAlarm ready\r\n");
+	rprintfProgStrM("\r\nsmartAlarm v1.01 ready\r\n");
 
 	// initialize cmdline system
 	cmdlineInit();
@@ -337,3 +337,4 @@ void systickHandler(void){
 			break;
 	}
 }
+
